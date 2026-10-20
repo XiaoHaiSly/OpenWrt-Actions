@@ -1,0 +1,93 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2026 VIKINGYFY
+
+#软件源发布公用核心
+name: WRT-PUBLISH
+
+on:
+  workflow_call:
+    inputs:
+      WRT_FEED_HOST:
+        required: true
+        type: string
+    secrets:
+      CLOUDFLARE_ACCOUNT_ID:
+        required: true
+      CLOUDFLARE_API_TOKEN:
+        required: true
+
+jobs:
+  publish:
+    name: Publish Feed
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      WRT_FEED_HOST: ${{inputs.WRT_FEED_HOST}}
+    steps:
+      - name: Checkout Projects
+        uses: actions/checkout@main
+
+      - name: Download Feed
+        uses: actions/download-artifact@v8
+        with:
+          pattern: feed-*
+          path: public
+          merge-multiple: true
+
+      - name: Download Vermagic
+        uses: actions/download-artifact@v8
+        with:
+          pattern: vermagic-*
+          path: vermagic
+          merge-multiple: true
+
+      - name: Resolve Feed Tag
+        run: |
+          ls vermagic/*.tag >/dev/null 2>&1 || { echo "ERROR: no feed tag found"; exit 1; }
+          TAGS=$(cat vermagic/*.tag | sort -u)
+          if [ "$(echo "$TAGS" | wc -l)" -ne 1 ]; then
+            echo "ERROR: source commit differs between build jobs:"
+            for F in vermagic/*.tag; do echo "  $(basename "$F" .tag): $(cat "$F")"; done
+            exit 1
+          fi
+          echo "feed tag: $TAGS"
+          echo "FEED_TAG=$TAGS" >> "$GITHUB_ENV"
+
+      - name: Verify Kernel Match
+        run: |
+          FAIL=0
+          for F in vermagic/*.txt; do
+            CFG=$(basename "$F" .txt)
+            SUB=${CFG,,}
+            FW=$(cat "$F")
+            FD=$(cat "public/kmods/$SUB/vermagic" 2>/dev/null || echo missing)
+            if [ "$FW" = "$FD" ]; then
+              echo "OK   $CFG: $FW"
+            else
+              echo "FAIL $CFG: firmware=$FW feed=$FD"
+              FAIL=1
+            fi
+          done
+          [ "$FAIL" -eq 0 ] || exit 1
+
+      - name: Index Page
+        run: |
+          {
+            echo "<!doctype html><meta charset=\"utf-8\"><title>Feed $FEED_TAG</title><h1>Feed $FEED_TAG</h1><ul>"
+            find public -name '*.adb' | sort | while read -r F; do
+              echo "<li><a href=\"/${F#public/}\">${F#public/}</a></li>"
+            done
+            echo '</ul>'
+          } > public/index.html
+
+      - name: Get Pages Project
+        run: |
+          echo "CF_PROJECT=$(bash Scripts/Feed.sh project)" >> "$GITHUB_ENV"
+
+      - name: Deploy To Cloudflare Pages
+        if: ${{ env.CF_PROJECT != '' }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          accountId: ${{secrets.CLOUDFLARE_ACCOUNT_ID}}
+          apiToken: ${{secrets.CLOUDFLARE_API_TOKEN}}
+          command: pages deploy public --project-name=${{env.CF_PROJECT}} --branch=${{env.FEED_TAG}}
