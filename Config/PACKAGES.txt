@@ -9,9 +9,10 @@ CONFIG_PACKAGE_luci-app-gecoosac=m
 CONFIG_PACKAGE_luci-app-homeproxy=m
 CONFIG_PACKAGE_luci-app-miaomiaowu=m
 #主题
+CONFIG_PACKAGE_luci-theme-outline=m
+CONFIG_PACKAGE_luci-theme-shadcn=m
 CONFIG_PACKAGE_luci-app-vantage=m
 CONFIG_PACKAGE_luci-theme-vantage=m
-CONFIG_PACKAGE_luci-theme-shadcn=m
 CONFIG_PACKAGE_luci-theme-aurora=m
 CONFIG_PACKAGE_luci-app-aurora-config=m
 #取消插件

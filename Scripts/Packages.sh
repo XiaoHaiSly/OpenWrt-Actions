@@ -60,6 +60,8 @@ UPDATE_PACKAGE "kucat-config" "sirpdboy/luci-app-kucat-config" "master"
 UPDATE_PACKAGE "shadcn" "eamonxg/luci-theme-shadcn" "main"
 UPDATE_PACKAGE "luci-theme-edge" "ricemices/luci-theme-edge" "master"
 UPDATE_PACKAGE "vantage" "anothaDev/luci-theme-vantage" "main"
+UPDATE_PACKAGE "outline" "tickcount/luci-theme-outline" "master"
+
 
 UPDATE_PACKAGE "momo" "nikkinikki-org/OpenWrt-momo" "main"
 UPDATE_PACKAGE "nikki" "nikkinikki-org/OpenWrt-nikki" "main"
